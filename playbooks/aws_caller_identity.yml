@@ -1,0 +1,33 @@
+---
+- name: Verifica Conta e Role AWS Atual
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  vars:
+    # Opcional: Especifique um perfil AWS se não estiver usando variáveis de ambiente
+    # ansible_python_interpreter: /usr/bin/python3
+    # aws_profile: "seu-perfil"
+
+  tasks:
+    - name: Obter informacoes de identidade do chamador (Caller Identity)
+      amazon.aws.aws_caller_info:
+        # profile: "{{ aws_profile | default(omit) }}"
+      register: aws_caller
+
+    - name: Exibir informacoes da Conta
+      ansible.builtin.debug:
+        msg:
+          - "Conta ID: {{ aws_caller.account }}"
+          - "ARN: {{ aws_caller.arn }}"
+          - "User ID: {{ aws_caller.user_id }}"
+
+    - name: Extrair Role do ARN (se aplicavel)
+      ansible.builtin.debug:
+        msg: "Voce esta assumindo a role: {{ aws_caller.arn.split('/')[-1] }}"
+      when: "'assumed-role' in aws_caller.arn"
+
+    - name: Informar se eh Usuario IAM (nao role)
+      ansible.builtin.debug:
+        msg: "Voce esta usando um usuario IAM: {{ aws_caller.arn.split('/')[-1] }}"
+      when: "'assumed-role' not in aws_caller.arn"
+
