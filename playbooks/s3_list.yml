@@ -1,0 +1,25 @@
+---
+- name: Listar todos os Buckets S3 da AWS
+  hosts: localhost
+  gather_facts: no
+  vars:
+    # Opcional: Você pode definir o perfil AWS se não for o padrão
+    # aws_profile: "seu-perfil"
+    # aws_region: "us-east-1"
+    
+  tasks:
+    - name: Coletar informações sobre todos os buckets S3
+      amazon.aws.s3_bucket_info:
+        # profile: "{{ aws_profile | default(omit) }}"
+        # region: "{{ aws_region | default(omit) }}"
+      register: s3_buckets
+
+    - name: Exibir os nomes dos buckets
+      ansible.builtin.debug:
+        msg: "Bucket Encontrado: {{ item.name }}"
+      loop: "{{ s3_buckets.buckets }}"
+
+    - name: Exibir lista completa em formato JSON
+      ansible.builtin.debug:
+        var: s3_buckets.buckets
+

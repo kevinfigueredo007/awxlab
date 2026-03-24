@@ -1,18 +1,22 @@
 ---
 - name: Coletar informações da máquina
   hosts: all
-  gather_facts: yes  # Ativa a coleta de informações (facts)
+  gather_facts: yes
   
   tasks:
     - name: Exibir o sistema operacional
-      ansible.builtin.debug:
+      debug:
         msg: "O SO é {{ ansible_distribution }} {{ ansible_distribution_version }}"
 
-    - name: Exibir o endereço IP
-      ansible.builtin.debug:
-        msg: "O IP é {{ ansible_default_ipv4.address }}"
+    - name: Exibir IP
+      debug:
+        msg: >-
+          IP: {{
+            ansible_default_ipv4.address
+            if ansible_default_ipv4 is defined and ansible_default_ipv4.address is defined
+            else ansible_all_ipv4_addresses[0]
+          }}
 
     - name: Exibir memória total
-      ansible.builtin.debug:
+      debug:
         msg: "Memória total: {{ ansible_memtotal_mb }} MB"
-
