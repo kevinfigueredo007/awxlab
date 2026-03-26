@@ -24,7 +24,7 @@
 
     # ── 2. Assume Role ────────────────────────────────────────────────────
     - name: Assumir role via STS
-      community.aws.sts_assume_role:
+      amazon.aws.sts_assume_role:
         role_arn: "{{ role_arn }}"
         role_session_name: "{{ session_name }}"
         duration_seconds: "{{ session_duration }}"
