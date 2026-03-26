@@ -1,0 +1,63 @@
+---
+- name: Verifica Conta, Assume Role e Valida Identidade AWS
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  vars:
+    role_arn: "arn:aws:iam::123456789012:role/MinhaRole"   # <-- altere aqui
+    session_name: "ansible-session"
+    session_duration: 3600  # segundos (1h)
+
+  tasks:
+
+    # ── 1. Identidade ANTES do assume ─────────────────────────────────────
+    - name: Obter identidade atual (antes do assume)
+      amazon.aws.aws_caller_info:
+      register: aws_caller_before
+
+    - name: Exibir identidade antes do assume
+      ansible.builtin.debug:
+        msg:
+          - "Conta ID : {{ aws_caller_before.account }}"
+          - "ARN      : {{ aws_caller_before.arn }}"
+          - "User ID  : {{ aws_caller_before.user_id }}"
+
+    # ── 2. Assume Role ────────────────────────────────────────────────────
+    - name: Assumir role via STS
+      community.aws.sts_assume_role:
+        role_arn: "{{ role_arn }}"
+        role_session_name: "{{ session_name }}"
+        duration_seconds: "{{ session_duration }}"
+      register: assumed_role
+
+    - name: Guardar credenciais temporarias em variaveis de fato
+      ansible.builtin.set_fact:
+        aws_access_key:    "{{ assumed_role.sts_creds.access_key }}"
+        aws_secret_key:    "{{ assumed_role.sts_creds.secret_key }}"
+        aws_session_token: "{{ assumed_role.sts_creds.session_token }}"
+
+    # ── 3. Identidade APÓS o assume ───────────────────────────────────────
+    - name: Obter identidade com as credenciais assumidas
+      amazon.aws.aws_caller_info:
+        access_key: "{{ aws_access_key }}"
+        secret_key: "{{ aws_secret_key }}"
+        session_token: "{{ aws_session_token }}"
+      register: aws_caller_after
+
+    # ── 4. Exibir e interpretar resultado ─────────────────────────────────
+    - name: Exibir informacoes da conta assumida
+      ansible.builtin.debug:
+        msg:
+          - "Conta ID : {{ aws_caller_after.account }}"
+          - "ARN      : {{ aws_caller_after.arn }}"
+          - "User ID  : {{ aws_caller_after.user_id }}"
+
+    - name: Confirmar nome da role assumida
+      ansible.builtin.debug:
+        msg: "Role ativa: {{ aws_caller_after.arn.split('/')[-2] }} / sessao: {{ aws_caller_after.arn.split('/')[-1] }}"
+      when: "'assumed-role' in aws_caller_after.arn"
+
+    - name: Informar se ainda e usuario IAM (assume falhou silenciosamente?)
+      ansible.builtin.debug:
+        msg: "ATENCAO: ainda usando usuario IAM {{ aws_caller_after.arn.split('/')[-1] }}"
+      when: "'assumed-role' not in aws_caller_after.arn"
