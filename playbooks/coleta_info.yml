@@ -8,15 +8,6 @@
       debug:
         msg: "O SO é {{ ansible_distribution }} {{ ansible_distribution_version }}"
 
-    - name: Exibir IP
-      debug:
-        msg: >-
-          IP: {{
-            ansible_default_ipv4.address
-            if ansible_default_ipv4 is defined and ansible_default_ipv4.address is defined
-            else ansible_all_ipv4_addresses[0]
-          }}
-
     - name: Exibir memória total
       debug:
         msg: "Memória total: {{ ansible_memtotal_mb }} MB"
