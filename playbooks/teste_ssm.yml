@@ -1,0 +1,8 @@
+- name: Test SSM connection
+  hosts: all
+  connection: aws_ssm
+  gather_facts: no
+
+  tasks:
+    - name: Run command
+      command: hostname
