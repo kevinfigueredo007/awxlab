@@ -1,0 +1,86 @@
+version: 3
+images:
+  base_image:
+    name: registry.fedoraproject.org/fedora:42
+
+dependencies:
+  python_interpreter:
+    package_system: python3
+  ansible_core:
+    package_pip: ansible-core
+  ansible_runner:
+    package_pip: ansible-runner
+  system:
+    - openssh-clients
+    - sshpass
+    - git-core
+    - curl
+    - unzip
+    - jq
+    - dumb-init
+    - ca-certificates
+  python:
+    - boto3
+    - botocore
+    - awscli
+    - jmespath
+  galaxy:
+    collections:
+      - name: amazon.aws
+      - name: community.aws
+
+additional_build_steps:
+  prepend_final:
+    - RUN echo -e "[main]\ninstall_weak_deps=False\ntsflags=nodocs" >> /etc/dnf/dnf.conf
+    - RUN update-ca-trust
+    - RUN curl -fsSL "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm" -o /tmp/session-manager-plugin.rpm
+    - RUN dnf install -y /tmp/session-manager-plugin.rpm && rm -f /tmp/session-manager-plugin.rpm
+    - RUN chmod o+w /etc/passwd
+
+  append_final:
+    - RUN mkdir -p /tmp/.ansible/tmp && chmod -R 777 /tmp/.ansible
+    - |
+      RUN cat <<'SCRIPT' > /entrypoint.sh
+      #!/bin/bash
+      set -euo pipefail
+
+      # Fix UID
+      if ! whoami &>/dev/null; then
+        [ -w /etc/passwd ] && echo "ansible:x:$(id -u):$(id -g):Ansible:/tmp:/bin/bash" >> /etc/passwd
+      fi
+
+      export HOME=/tmp
+      export ANSIBLE_LOCAL_TEMP=/tmp/.ansible/tmp
+      export ANSIBLE_REMOTE_TEMP=/tmp/.ansible/tmp
+
+      # Resolve ROLE_ARN — sem nenhum echo (stdout e stderr são capturados pelo ansible-runner)
+      if [ -z "${ROLE_ARN:-}" ] && [ -f "/runner/env/envvars" ]; then
+        ROLE_ARN=$(grep "^ROLE_ARN=" /runner/env/envvars | cut -d'=' -f2- | xargs 2>/dev/null || true)
+      fi
+
+      if [ -z "${ROLE_ARN:-}" ] && [ -f "/runner/env/extravars" ]; then
+        ROLE_ARN=$(grep "^ROLE_ARN:" /runner/env/extravars \
+          | cut -d':' -f2- \
+          | sed 's/^[[:space:]]*//;s/[[:space:]]*$//;s/^["'"'"']//;s/["'"'"']$//' \
+          2>/dev/null || true)
+      fi
+
+      # Assume role — todo output suprimido
+      if [ -n "${ROLE_ARN:-}" ]; then
+        CREDS=$(aws sts assume-role \
+          --role-arn "$ROLE_ARN" \
+          --role-session-name "${ROLE_SESSION_NAME:-awx-session}" \
+          --output json 2>/dev/null)
+
+        export AWS_ACCESS_KEY_ID=$(echo "$CREDS"     | jq -r '.Credentials.AccessKeyId')
+        export AWS_SECRET_ACCESS_KEY=$(echo "$CREDS" | jq -r '.Credentials.SecretAccessKey')
+        export AWS_SESSION_TOKEN=$(echo "$CREDS"     | jq -r '.Credentials.SessionToken')
+      fi
+
+      exec /opt/builder/bin/entrypoint dumb-init "$@"
+      SCRIPT
+    - RUN chmod +x /entrypoint.sh
+
+options:
+  container_init:
+    entrypoint: '["/entrypoint.sh"]'
