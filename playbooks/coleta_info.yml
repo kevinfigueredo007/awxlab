@@ -6,8 +6,8 @@
   tasks:
     - name: Exibir o sistema operacional
       debug:
-        msg: "O SO é {{ ansible_distribution }} {{ ansible_distribution_version }}"
+        msg: "O SO é {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
 
     - name: Exibir memória total
       debug:
-        msg: "Memória total: {{ ansible_memtotal_mb }} MB"
+        msg: "Memória total: {{ ansible_facts['memtotal_mb'] }} MB"

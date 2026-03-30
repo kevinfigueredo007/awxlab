@@ -1,7 +1,6 @@
 ---
 - name: Verifica Conta, Assume Role e Valida Identidade AWS
-  hosts: localhost
-  connection: local
+  hosts: all
   gather_facts: no
   vars:
     role_arn: "arn:aws:iam::123456789012:role/MinhaRole"   # <-- altere aqui

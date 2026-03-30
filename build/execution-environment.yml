@@ -1,0 +1,32 @@
+version: 3
+
+images:
+  base_image:
+    name: registry.fedoraproject.org/fedora:42
+
+dependencies:
+  python_interpreter:
+    package_system: python3
+
+  ansible_core:
+    package_pip: ansible-core
+
+  ansible_runner:
+    package_pip: ansible-runner
+
+  system:
+    - openssh-clients
+    - sshpass
+    - git
+    - curl
+
+  python:
+    - boto3
+    - botocore
+    - awscli
+    - jmespath
+
+  galaxy:
+    collections:
+      - name: amazon.aws
+      - name: community.aws

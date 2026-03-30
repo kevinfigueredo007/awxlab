@@ -1,8 +1,12 @@
-- name: Test SSM connection
-  hosts: all
-  connection: aws_ssm
-  gather_facts: no
-
+# playbook.yml
+- name: Exemplo via SSM
+  hosts: ec2
+  gather_facts: true
   tasks:
-    - name: Run command
+    - name: Verifica o hostname
       command: hostname
+      register: result
+
+    - name: Exibe resultado
+      debug:
+        msg: "{{ result.stdout }}"

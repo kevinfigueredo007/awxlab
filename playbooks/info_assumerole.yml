@@ -1,0 +1,41 @@
+---
+- name: Assume AWS Role
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Assume role via STS
+      amazon.aws.sts_assume_role:
+        role_arn: "arn:aws:iam::123456789012:role/MinhaRole"
+        role_session_name: "ansible-session-{{ lookup('pipe', 'date +%s') }}"
+        region: us-east-1
+      register: assumed_role
+
+    - name: Seta credenciais como fact global
+      ansible.builtin.set_fact:
+        aws_access_key: "{{ assumed_role.sts_creds.access_key }}"
+        aws_secret_key: "{{ assumed_role.sts_creds.secret_key }}"
+        aws_session_token: "{{ assumed_role.sts_creds.session_token }}"
+      cacheable: true
+
+- name: Executar na EC2 via SSM
+  hosts: ec2
+  gather_facts: true
+
+  vars:
+    ansible_connection: community.aws.aws_ssm
+    ansible_aws_ssm_region: us-east-1
+
+    ansible_aws_ssm_access_key_id: "{{ hostvars['localhost']['aws_access_key'] }}"
+    ansible_aws_ssm_secret_access_key: "{{ hostvars['localhost']['aws_secret_key'] }}"
+    ansible_aws_ssm_session_token: "{{ hostvars['localhost']['aws_session_token'] }}"
+
+  tasks:
+    - name: Verifica hostname
+      ansible.builtin.command: hostname
+      register: result
+
+    - name: Exibe resultado
+      ansible.builtin.debug:
+        msg: "{{ result.stdout }}"
