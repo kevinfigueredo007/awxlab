@@ -1,0 +1,21 @@
+---
+- name: AWS STS Get Caller Identity
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    # Opcional: sobrescreva com variáveis de ambiente ou extra-vars
+    aws_region: "us-east-1"
+
+  tasks:
+    - name: Obter identidade do caller via STS
+      amazon.aws.aws_caller_info:
+      register: caller_info
+
+    - name: Exibir informações do caller
+      ansible.builtin.debug:
+        msg:
+          - "Account ID : {{ caller_info.account }}"
+          - "User ID    : {{ caller_info.user_id }}"
+          - "ARN        : {{ caller_info.arn }}"
