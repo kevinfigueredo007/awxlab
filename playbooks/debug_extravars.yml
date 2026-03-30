@@ -1,0 +1,17 @@
+- name: Debug extravars file
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Ler arquivo extravars
+      ansible.builtin.slurp:
+        path: /runner/env/extravars
+      register: extravars_file
+
+    - name: Mostrar conteúdo bruto (base64 decodificado)
+      ansible.builtin.debug:
+        msg: "{{ extravars_file.content | b64decode }}"
+
+    - name: Converter para JSON e mostrar estruturado
+      ansible.builtin.debug:
+        var: extravars_file.content | b64decode | from_json
