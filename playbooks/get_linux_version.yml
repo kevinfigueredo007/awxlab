@@ -1,0 +1,24 @@
+- name: Coleta versão do Linux
+  hosts: all
+  gather_facts: true
+  vars:
+    ansible_aws_ec2_auto_assign_public_ip: false
+
+  tasks:
+    - name: Exibe distribuição e versão
+      debug:
+        msg: |
+          Host: {{ inventory_hostname }}
+          OS: {{ ansible_distribution }}
+          Versão: {{ ansible_distribution_version }}
+          Kernel: {{ ansible_kernel }}
+
+    - name: Salva resultado como artifact
+      set_stats:
+        data:
+          linux_info:
+            host: "{{ inventory_hostname }}"
+            distribution: "{{ ansible_distribution }}"
+            version: "{{ ansible_distribution_version }}"
+            kernel: "{{ ansible_kernel }}"
+        per_host: true

@@ -1,0 +1,23 @@
+- name: Assume IAM Role e exporta credenciais
+  hosts: localhost
+  gather_facts: false
+  vars:
+    role_arn: "arn:aws:iam::123456789012:role/minha-role"
+    session_name: "ansible-session"
+
+  tasks:
+    - name: Assume Role via STS
+      amazon.aws.sts_assume_role:
+        role_arn: "{{ role_arn }}"
+        role_session_name: "{{ session_name }}"
+        duration_seconds: 3600
+      register: assumed_role
+
+    - name: Salva credenciais como artifacts
+      set_stats:
+        data:
+          aws_access_key: "{{ assumed_role.sts_creds.access_key }}"
+          aws_secret_key: "{{ assumed_role.sts_creds.secret_key }}"
+          aws_session_token: "{{ assumed_role.sts_creds.session_token }}"
+        per_host: false
+        aggregate: false
