@@ -16,7 +16,7 @@
     - name: Salva credenciais como artifacts
       set_stats:
         data:
-          ansible_aws_ssm_secret_access_key: "{{ assumed_role.sts_creds.access_key }}"
+          ansible_aws_ssm_access_key_id: "{{ assumed_role.sts_creds.access_key }}"
           ansible_aws_ssm_secret_key: "{{ assumed_role.sts_creds.secret_key }}"
           ansible_aws_ssm_session_token: "{{ assumed_role.sts_creds.session_token }}"
         per_host: false
