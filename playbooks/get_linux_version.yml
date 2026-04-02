@@ -3,12 +3,6 @@
   gather_facts: true
 
   tasks:
-    - name: Exibe variaveis aws
-      debug:
-        msg: |
-          AWS Access Key: {{ ansible_aws_ssm_access_key_id }}
-          AWS Secret Key: {{ ansible_aws_ssm_secret_key }}
-          AWS Session Token: {{ ansible_aws_ssm_session_token }}
     - name: Exibe distribuição e versão
       debug:
         msg: |
@@ -16,13 +10,3 @@
           OS: {{ ansible_distribution }}
           Versão: {{ ansible_distribution_version }}
           Kernel: {{ ansible_kernel }}
-
-#    - name: Salva resultado como artifact
-#      set_stats:
-#        data:
-#          linux_info:
-#            host: "{{ inventory_hostname }}"
-#            distribution: "{{ ansible_distribution }}"
-#            version: "{{ ansible_distribution_version }}"
-#            kernel: "{{ ansible_kernel }}"
-#        per_host: true
