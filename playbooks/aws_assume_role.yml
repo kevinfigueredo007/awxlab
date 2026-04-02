@@ -12,6 +12,7 @@
         role_session_name: "{{ session_name }}"
         duration_seconds: 3600
       register: assumed_role
+      no_log: true 
 
     - name: Salva credenciais como artifacts
       set_stats:
@@ -21,3 +22,4 @@
           ansible_aws_ssm_session_token: "{{ assumed_role.sts_creds.session_token }}"
         per_host: false
         aggregate: false
+      no_log: true 
