@@ -1,0 +1,119 @@
+# create_awx_resources.yml
+- name: Cria Job Templates e Workflow no AWX
+  hosts: localhost
+  gather_facts: false
+  vars:
+    awx_url: "http://awx.lab.local/"
+    awx_password: "{{ lookup('env', 'AWX_PASSWORD') }}"
+    org_name: "produção"
+    project_name: "awxlab"
+    inventory_name: "ec2 instances"
+    aws_credential_name: "AWS AssumeRole User"
+    role_arn: "arn:aws:iam::123456789012:role/minha-role"
+
+  tasks:
+
+    # ────────────────────────────────────────────
+    # JOB TEMPLATE 1 — Assume Role
+    # ────────────────────────────────────────────
+    - name: Cria JT - Assume Role
+      awx.awx.job_template:
+        controller_host: "{{ awx_url }}"
+        controller_username: "admin"
+        controller_password: "{{ awx_password }}"
+        validate_certs: false
+        name: "JT - Assume Role"
+        organization: "{{ org_name }}"
+        project: "{{ project_name }}"
+        playbook: "playbooks/aws_assume_role.yml"
+        inventory: "Demo Inventory"
+        credentials:
+          - "{{ aws_credential_name }}"
+        extra_vars:
+          role_arn: "{{ role_arn }}"
+          session_name: "ansible-session"
+        ask_variables_on_launch: true
+        state: present
+
+    # ────────────────────────────────────────────
+    # JOB TEMPLATE 2 — Coleta versão Linux
+    # ────────────────────────────────────────────
+    - name: Cria JT - Get Linux Version
+      awx.awx.job_template:
+        controller_host: "{{ awx_url }}"
+        controller_username: "admin"
+        controller_password: "{{ awx_password }}"
+        validate_certs: false
+        name: "JT - Get Linux Version"
+        organization: "{{ org_name }}"
+        project: "{{ project_name }}"
+        playbook: "playbooks/get_linux_version.yml"
+        inventory: "{{ inventory_name }}"
+        ask_variables_on_launch: true
+        state: present
+
+    # ────────────────────────────────────────────
+    # WORKFLOW TEMPLATE
+    # ────────────────────────────────────────────
+    - name: Cria Workflow Template
+      awx.awx.workflow_job_template:
+        controller_host: "{{ awx_url }}"
+        controller_username: "admin"
+        controller_password: "{{ awx_password }}"
+        validate_certs: false
+        name: "WF - Assume Role e Coleta Linux"
+        organization: "{{ org_name }}"
+        ask_variables_on_launch: true
+        extra_vars:
+          role_arn: "{{ role_arn }}"
+        state: present
+
+    # ────────────────────────────────────────────
+    # NÓ 1 — Assume Role (ponto de entrada)
+    # ────────────────────────────────────────────
+    - name: Cria nó 1 - Assume Role
+      awx.awx.workflow_job_template_node:
+        controller_host: "{{ awx_url }}"
+        controller_username: "admin"
+        controller_password: "{{ awx_password }}"
+        validate_certs: false
+        workflow_job_template: "WF - Assume Role e Coleta Linux"
+        identifier: "node-assume-role"
+        unified_job_template: "JT - Assume Role"
+        state: present
+
+    # ────────────────────────────────────────────
+    # NÓ 2 — Get Linux Version (executa após sucesso do nó 1)
+    # ────────────────────────────────────────────
+    - name: Cria nó 2 - Get Linux Version
+      awx.awx.workflow_job_template_node:
+        controller_host: "{{ awx_url }}"
+        controller_username: "admin"
+        controller_password: "{{ awx_password }}"
+        validate_certs: false
+        workflow_job_template: "WF - Assume Role e Coleta Linux"
+        identifier: "node-get-linux"
+        unified_job_template: "JT - Get Linux Version"
+        success_nodes:
+          - "node-assume-role"
+        state: present
+
+    # ────────────────────────────────────────────
+    # LANÇA O WORKFLOW
+    # ────────────────────────────────────────────
+    - name: Lança o Workflow
+      awx.awx.workflow_launch:
+        controller_host: "{{ awx_url }}"
+        controller_username: "admin"
+        controller_password: "{{ awx_password }}"
+        validate_certs: false
+        name: "WF - Assume Role e Coleta Linux"
+        extra_vars:
+          role_arn: "{{ role_arn }}"
+        wait: true
+        timeout: 300
+      register: wf_result
+
+    - name: Exibe resultado do Workflow
+      debug:
+        msg: "Workflow finalizado com status: {{ wf_result.status }}"
