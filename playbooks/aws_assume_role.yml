@@ -6,20 +6,17 @@
     session_name: "ansible-session"
 
   tasks:
-    - name: Assume Role via STS
+    - name: Assume Role
       amazon.aws.sts_assume_role:
         role_arn: "{{ role_arn }}"
         role_session_name: "{{ session_name }}"
-        duration_seconds: 3600
       register: assumed_role
-      no_log: true 
-
-    - name: Salva credenciais como artifacts
-      set_stats:
-        data:
-          ansible_aws_ssm_access_key_id: "{{ assumed_role.sts_creds.access_key }}"
-          ansible_aws_ssm_secret_access_key: "{{ assumed_role.sts_creds.secret_key }}"
-          ansible_aws_ssm_session_token: "{{ assumed_role.sts_creds.session_token }}"
-        per_host: false
-        aggregate: false
-      no_log: true 
+      no_log: true
+    
+    - name: Salva credenciais em memória
+      set_fact:
+        aws_env:
+          AWS_ACCESS_KEY_ID: "{{ assumed_role.sts_creds.access_key }}"
+          AWS_SECRET_ACCESS_KEY: "{{ assumed_role.sts_creds.secret_key }}"
+          AWS_SESSION_TOKEN: "{{ assumed_role.sts_creds.session_token }}"
+      no_log: true
