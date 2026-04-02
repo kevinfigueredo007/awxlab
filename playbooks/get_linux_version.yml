@@ -1,18 +1,6 @@
 - name: Coleta versão do Linux
   hosts: all
   gather_facts: true
-  vars:
-    ansible_aws_ec2_auto_assign_public_ip: false
-
-    ansible_connection: aws_ssm
-    ansible_aws_ssm_region: us-east-1
-    ansible_aws_ssm_bucket_name: teste-poc-estudo
-    ansible_python_interpreter: /usr/bin/python3
-    ansible_remote_tmp: /tmp/.ansible/tmp
-
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_access_key: "{{ aws_secret_key }}"
-    aws_session_token: "{{ aws_session_token }}"
 
   tasks:
     - name: Exibe distribuição e versão
@@ -23,12 +11,12 @@
           Versão: {{ ansible_distribution_version }}
           Kernel: {{ ansible_kernel }}
 
-    - name: Salva resultado como artifact
-      set_stats:
-        data:
-          linux_info:
-            host: "{{ inventory_hostname }}"
-            distribution: "{{ ansible_distribution }}"
-            version: "{{ ansible_distribution_version }}"
-            kernel: "{{ ansible_kernel }}"
-        per_host: true
+#    - name: Salva resultado como artifact
+#      set_stats:
+#        data:
+#          linux_info:
+#            host: "{{ inventory_hostname }}"
+#            distribution: "{{ ansible_distribution }}"
+#            version: "{{ ansible_distribution_version }}"
+#            kernel: "{{ ansible_kernel }}"
+#        per_host: true
