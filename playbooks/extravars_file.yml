@@ -1,11 +1,65 @@
-- name: Mostrar extravars via shell
+- name: Debug completo do ambiente do EE
   hosts: localhost
   gather_facts: false
 
   tasks:
-    - name: Cat extravars
-      ansible.builtin.command: cat /runner/env/extravars
-      register: result
 
-    - debug:
-        var: result.stdout
+    # =========================
+    # EXTRAVARS
+    # =========================
+    - name: Ler extravars
+      ansible.builtin.slurp:
+        path: /runner/env/extravars
+      register: extravars_file
+      ignore_errors: true
+
+    - name: Mostrar extravars (raw)
+      ansible.builtin.debug:
+        msg: "{{ extravars_file.content | b64decode }}"
+      when: extravars_file is defined and extravars_file.content is defined
+
+    # =========================
+    # ENVVARS (arquivo)
+    # =========================
+    - name: Ler envvars
+      ansible.builtin.slurp:
+        path: /runner/env/envvars
+      register: envvars_file
+      ignore_errors: true
+
+    - name: Mostrar envvars (raw)
+      ansible.builtin.debug:
+        msg: "{{ envvars_file.content | b64decode }}"
+      when: envvars_file is defined and envvars_file.content is defined
+
+    # =========================
+    # AWS ENV VARS (mascarado)
+    # =========================
+    - name: Mostrar variáveis AWS (seguro)
+      ansible.builtin.debug:
+        msg:
+          AWS_ACCESS_KEY_ID: "{{ ansible_env.AWS_ACCESS_KEY_ID | default('N/A') }}"
+          AWS_SECRET_ACCESS_KEY: >-
+            {{ (ansible_env.AWS_SECRET_ACCESS_KEY | default('N/A'))[:4] ~ '****'
+               if ansible_env.AWS_SECRET_ACCESS_KEY is defined else 'N/A' }}
+          AWS_SESSION_TOKEN: >-
+            {{ 'SET' if ansible_env.AWS_SESSION_TOKEN is defined else 'N/A' }}
+          AWS_DEFAULT_REGION: "{{ ansible_env.AWS_DEFAULT_REGION | default('N/A') }}"
+
+    # =========================
+    # TODAS ENV VARS (Ansible)
+    # =========================
+    - name: Mostrar todas env vars (Ansible)
+      ansible.builtin.debug:
+        var: ansible_env
+
+    # =========================
+    # ENV VARS VIA SHELL
+    # =========================
+    - name: Listar todas env vars via shell
+      ansible.builtin.command: env
+      register: all_env
+
+    - name: Mostrar env vars (shell)
+      ansible.builtin.debug:
+        var: all_env.stdout_lines
