@@ -13,7 +13,7 @@
       register: extravars_file
       ignore_errors: true
 
-    - name: Mostrar extravars (raw)
+    - name: Mostrar extravars
       ansible.builtin.debug:
         msg: "{{ extravars_file.content | b64decode }}"
       when: extravars_file is defined and extravars_file.content is defined
@@ -27,39 +27,60 @@
       register: envvars_file
       ignore_errors: true
 
-    - name: Mostrar envvars (raw)
+    - name: Mostrar envvars
       ansible.builtin.debug:
         msg: "{{ envvars_file.content | b64decode }}"
       when: envvars_file is defined and envvars_file.content is defined
 
     # =========================
-    # AWS ENV VARS (mascarado)
+    # ROLE ARN (seu credential)
     # =========================
-    - name: Mostrar variáveis AWS (seguro)
+    - name: Ver ROLE_ARN
+      ansible.builtin.debug:
+        msg: "ROLE_ARN = {{ lookup('env', 'ROLE_ARN') | default('NÃO DEFINIDO') }}"
+
+    # =========================
+    # AWS ENV VARS (seguro)
+    # =========================
+    - name: Mostrar variáveis AWS (mascarado)
       ansible.builtin.debug:
         msg:
-          AWS_ACCESS_KEY_ID: "{{ ansible_env.AWS_ACCESS_KEY_ID | default('N/A') }}"
+          AWS_ACCESS_KEY_ID: "{{ lookup('env','AWS_ACCESS_KEY_ID') | default('N/A') }}"
           AWS_SECRET_ACCESS_KEY: >-
-            {{ (ansible_env.AWS_SECRET_ACCESS_KEY | default('N/A'))[:4] ~ '****'
-               if ansible_env.AWS_SECRET_ACCESS_KEY is defined else 'N/A' }}
+            {{ (lookup('env','AWS_SECRET_ACCESS_KEY')[:4] ~ '****')
+               if lookup('env','AWS_SECRET_ACCESS_KEY') else 'N/A' }}
           AWS_SESSION_TOKEN: >-
-            {{ 'SET' if ansible_env.AWS_SESSION_TOKEN is defined else 'N/A' }}
-          AWS_DEFAULT_REGION: "{{ ansible_env.AWS_DEFAULT_REGION | default('N/A') }}"
+            {{ 'SET' if lookup('env','AWS_SESSION_TOKEN') else 'N/A' }}
+          AWS_DEFAULT_REGION: "{{ lookup('env','AWS_DEFAULT_REGION') | default('N/A') }}"
 
     # =========================
-    # TODAS ENV VARS (Ansible)
+    # VALIDACAO INTELIGENTE
     # =========================
-    - name: Mostrar todas env vars (Ansible)
+    - name: Validar se tem credencial AWS
       ansible.builtin.debug:
-        var: ansible_env
+        msg: >-
+          {% if lookup('env','AWS_ACCESS_KEY_ID') %}
+          ✅ Credencial AWS presente
+          {% else %}
+          ⚠️ Credencial AWS NÃO encontrada
+          {% endif %}
+
+    - name: Validar se tem ROLE_ARN
+      ansible.builtin.debug:
+        msg: >-
+          {% if lookup('env','ROLE_ARN') %}
+          ✅ ROLE_ARN detectado (AssumeRole possível)
+          {% else %}
+          ❌ ROLE_ARN não encontrado
+          {% endif %}
 
     # =========================
-    # ENV VARS VIA SHELL
+    # ENV VARS COMPLETAS (shell)
     # =========================
-    - name: Listar todas env vars via shell
+    - name: Listar env vars (shell)
       ansible.builtin.command: env
       register: all_env
 
-    - name: Mostrar env vars (shell)
+    - name: Mostrar env vars completas
       ansible.builtin.debug:
         var: all_env.stdout_lines
