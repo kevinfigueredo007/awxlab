@@ -37,3 +37,7 @@ additional_build_steps:
     RUN dnf install -y ca-certificates && update-ca-trust
     RUN curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm" -o "session-manager-plugin.rpm"
     RUN dnf install -y ./session-manager-plugin.rpm && rm -f session-manager-plugin.rpm
+
+  append_final: |
+    COPY plugins/ /usr/share/ansible/plugins/
+    ENV ANSIBLE_CONNECTION_PLUGINS=/usr/share/ansible/plugins/connection

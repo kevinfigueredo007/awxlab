@@ -1,0 +1,96 @@
+# aws_ssm_assume_role — Connection Plugin
+
+Drop-in extension of `amazon.aws.aws_ssm` with transparent **STS AssumeRole** support.
+
+## Installation
+
+```
+your_collection/
+└── plugins/
+    └── connection/
+        └── aws_ssm_assume_role.py   ← place the file here
+```
+
+Or use a standalone collection path and point `ansible.cfg` to it:
+
+```ini
+[defaults]
+collections_path = ./collections
+connection_plugins = ./plugins/connection
+```
+
+## Required IAM permissions (controller identity)
+
+```json
+{
+  "Effect": "Allow",
+  "Action": "sts:AssumeRole",
+  "Resource": "arn:aws:iam::TARGET_ACCOUNT:role/YOUR_ROLE"
+}
+```
+
+All permissions needed to actually USE SSM + S3 must be attached to the **assumed role**, not the controller identity.
+
+---
+
+## Usage
+
+### Option A — per-host vars (inventory)
+
+```yaml
+# inventory/host_vars/i-0abc123def456.yml
+ansible_connection: aws_ssm_assume_role
+ansible_aws_ssm_bucket_name: my-ansible-bucket
+ansible_aws_ssm_region: us-east-1
+ansible_aws_ssm_role_arn: arn:aws:iam::123456789012:role/ansible-ssm-role
+ansible_aws_ssm_role_session_name: ansible-prod-session   # optional
+ansible_aws_ssm_role_duration_seconds: 3600               # optional, default 3600
+```
+
+### Option B — playbook vars
+
+```yaml
+- name: Collect Linux version via SSM + AssumeRole
+  hosts: all
+  vars:
+    ansible_connection: aws_ssm_assume_role
+    ansible_aws_ssm_bucket_name: my-ansible-bucket
+    ansible_aws_ssm_region: us-east-1
+    ansible_aws_ssm_role_arn: arn:aws:iam::123456789012:role/ansible-ssm-role
+
+  tasks:
+    - name: Get Linux version
+      setup:
+        gather_subset: [distribution]
+
+    - debug:
+        msg: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+```
+
+### Option C — environment variables
+
+```bash
+export ANSIBLE_AWS_SSM_ROLE_ARN=arn:aws:iam::123456789012:role/ansible-ssm-role
+export ANSIBLE_AWS_SSM_ROLE_SESSION_NAME=ansible-session
+ansible-playbook site.yml
+```
+
+---
+
+## Behaviour matrix
+
+| `role_arn` set? | Behaviour |
+|---|---|
+| No | Identical to `amazon.aws.aws_ssm` — zero overhead |
+| Yes | Calls `sts:AssumeRole` once per connection object, injects temp creds into ALL boto3 clients |
+
+---
+
+## Troubleshooting
+
+| Error | Likely cause |
+|---|---|
+| `ImportError: amazon.aws` | Run `ansible-galaxy collection install amazon.aws` |
+| `sts:AssumeRole failed [AccessDenied]` | Controller identity lacks `sts:AssumeRole` on the target role ARN |
+| `Unable to locate credentials` | Assumed role credentials not propagated — check `role_arn` var name |
+| `NoCredentialsError` before assume_role | No base credentials on the controller node |

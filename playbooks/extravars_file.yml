@@ -1,0 +1,11 @@
+- name: Mostrar extravars via shell
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Cat extravars
+      ansible.builtin.command: cat /runner/env/extravars
+      register: result
+
+    - debug:
+        var: result.stdout
