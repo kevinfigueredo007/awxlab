@@ -1,0 +1,50 @@
+# Isso é um exemplo de como criar uma imagem de ambiente de execução (execution environment) para Ansible usando o Ansible Builder, com base na imagem UBI 10 da Red Hat. A imagem inclui o Ansible Core, o Ansible Runner, e as dependências necessárias para trabalhar com AWS, como boto3 e jmespath. Além disso, o script de construção inclui a instalação do Session Manager Plugin da AWS, que é útil para gerenciar instâncias EC2 sem a necessidade de abrir portas ou usar SSH.
+
+# Para construir a imagem, use o comando:
+# ansible-builder build -t ee-aws-ubi10:latest -f build/ee-aws-ubi10.yml --verbosity 3
+
+# Autor: Kevin Figueredo
+---
+version: 3
+
+images:
+  base_image:
+    name: registry.access.redhat.com/ubi10/ubi-minimal:10.1
+
+# Necessario para imagems baseadas em UBI, que possuem microdnf por padrão
+options:
+  package_manager_path: /usr/bin/microdnf
+
+dependencies:
+  python_interpreter:
+    package_system: python3
+
+  ansible_core:
+    package_pip: ansible-core==2.16.18
+
+  ansible_runner:
+    package_pip: ansible-runner
+
+  system:
+    - curl
+    - ca-certificates
+
+  python:
+    - boto3
+    - jmespath
+
+  galaxy:
+    collections:
+      - name: amazon.aws
+      - name: community.aws
+
+additional_build_steps:
+  prepend_final: |
+    RUN update-ca-trust \
+        && curl -fL "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm" -o "/tmp/session-manager-plugin.rpm" \
+        && test -s /tmp/session-manager-plugin.rpm \
+        && rpm -i /tmp/session-manager-plugin.rpm \
+        && session-manager-plugin --version \
+        && rm -f /tmp/session-manager-plugin.rpm \
+        && microdnf clean all \
+        && rm -rf /var/cache/dnf /var/cache/yum
