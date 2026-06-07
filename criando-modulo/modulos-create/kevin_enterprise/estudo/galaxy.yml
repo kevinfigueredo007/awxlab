@@ -1,0 +1,9 @@
+namespace: kevin_enterprise
+name: estudo
+
+version: 1.0.0
+
+authors:
+  - Kevin Figueredo
+
+readme: README.md

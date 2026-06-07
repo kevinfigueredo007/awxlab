@@ -1,0 +1,25 @@
+---
+- name: Gather facts
+  ansible.builtin.setup:
+
+
+- name: Collect disk usage
+  ansible.builtin.command: df -h /
+  register: disk_usage
+  changed_when: false
+
+- name: Generate report
+  ansible.builtin.template:
+    src: report.md.j2
+    dest: "{{ report_output_dir }}/{{ inventory_hostname }}-report.md"
+
+- name: Show report location
+  ansible.builtin.debug:
+    msg: "Report generated at {{ report_output_dir }}/{{ inventory_hostname }}-report.md"
+
+- name: Export report data
+  ansible.builtin.set_stats:
+    data:
+      result:
+        disk_usage: "{{ disk_usage.stdout }}"
+        

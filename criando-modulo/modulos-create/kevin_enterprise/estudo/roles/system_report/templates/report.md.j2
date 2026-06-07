@@ -1,0 +1,52 @@
+# System Report
+
+Generated: {{ ansible_facts["date_time"]["iso8601"] }}
+
+---
+
+## Host
+
+Hostname: {{ ansible_facts["hostname"] }}
+
+FQDN: {{ ansible_facts["fqdn"] }}
+
+OS: {{ ansible_facts["distribution"] }} {{ ansible_facts["distribution_version"] }}
+
+Kernel: {{ ansible_facts["kernel"] }}
+
+Architecture: {{ ansible_facts["architecture"] }}
+
+---
+
+## CPU
+
+vCPUs: {{ ansible_facts["processor_vcpus"] }}
+
+Processors:
+
+{% for cpu in ansible_facts["processor"] %}
+
+* {{ cpu }}
+  {% endfor %}
+
+---
+
+## Memory
+
+Total: {{ ansible_facts["memtotal_mb"] }} MB
+
+---
+
+## Network
+
+Primary IP: {{ ansible_facts.get("default_ipv4", {}).get("address", "N/A") }}
+
+Interface: {{ ansible_facts.get("default_ipv4", {}).get("interface", "N/A") }}
+
+---
+
+## Disk
+
+{{ disk_usage.stdout }}
+
+---
