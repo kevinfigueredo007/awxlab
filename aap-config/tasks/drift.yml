@@ -7,3 +7,51 @@
     validate_certs: false
 
   register: current_jts
+
+- name: Lista desejada
+  set_fact:
+    desired_names: "{{ job_templates | map(attribute='name') | list }}"
+
+- name: Encontrar JTs gerenciados
+  set_fact:
+    managed_jts: >-
+      {{
+        current_jts.job_templates
+        | selectattr('summary_fields.labels', 'defined')
+        | selectattr(
+            'summary_fields.labels',
+            'contains',
+            {'name': 'managed-by-iuautomation'}
+          )
+        | list
+      }}
+
+- name: Extrair nomes
+  set_fact:
+    managed_names: "{{ managed_jts | map(attribute='name') | list }}"
+
+- name: Detectar drift
+  set_fact:
+    orphaned_job_templates: "{{ managed_names | difference(desired_names) }}"
+
+- name: Detectar drift
+  set_fact:
+    orphaned_job_templates: "{{ managed_names | difference(desired_names) }}"
+
+- name: Mostrar drift
+  debug:
+    var: orphaned_job_templates
+
+- name: Remover Job Templates órfãos
+  ansible.controller.job_template:
+
+    controller_host: "{{ controller_host }}"
+    controller_username: "{{ controller_username }}"
+    controller_password: "{{ controller_password }}"
+    validate_certs: false
+
+    name: "{{ item }}"
+    state: absent
+
+  loop: "{{ orphaned_job_templates }}"
+  when: orphaned_job_templates | length > 0
