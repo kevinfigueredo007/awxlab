@@ -1,0 +1,9 @@
+---
+- name: Obter Job Templates atuais
+  ansible.controller.job_template_info:
+    controller_host: "{{ controller_host }}"
+    controller_username: "{{ controller_username }}"
+    controller_password: "{{ controller_password }}"
+    validate_certs: false
+
+  register: current_jts
