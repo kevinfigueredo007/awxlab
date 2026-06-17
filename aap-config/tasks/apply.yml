@@ -1,0 +1,22 @@
+---
+- name: Garantir Job Templates
+  ansible.controller.job_template:
+
+    controller_host: "{{ controller_host }}"
+    controller_username: "{{ controller_username }}"
+    controller_password: "{{ controller_password }}"
+    validate_certs: false
+
+    name: "{{ item.name }}"
+    organization: "{{ item.organization }}"
+    project: "{{ item.project }}"
+    inventory: "{{ item.inventory }}"
+    playbook: "{{ item.playbook }}"
+    execution_environment: "{{ item.execution_environment }}"
+
+    labels:
+      - managed-by-iuautomation
+
+    state: present
+
+  loop: "{{ job_templates }}"
