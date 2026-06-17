@@ -1,0 +1,15 @@
+job_templates:
+
+  - name: Linux Patch
+    organization: Default
+    project: Operations
+    inventory: Linux
+    playbook: patch.yml
+    execution_environment: ee-linux
+
+  - name: Restart Service
+    organization: Default
+    project: Operations
+    inventory: Linux
+    playbook: restart.yml
+    execution_environment: ee-linux
